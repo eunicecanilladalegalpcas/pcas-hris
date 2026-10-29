@@ -26,7 +26,9 @@ opened, and stayed stuck on "Signing in…" if the request threw.
   selection and state only. Surfaces are warm paper (`#faf8f4` page, near-white cards), separated
   by hairline rules (`border`, and the lighter `--rule` inside tables and lists) more than shadows.
   Dark mode is navy ink, not neutral black.
-- One family, IBM Plex Sans (400–700), with tabular figures for tables, totals and dates.
+- One family, IBM Plex Sans (400–700), with tabular figures for tables, totals and dates. The Latin
+  files are self-hosted in `src/app/fonts` (`next/font/local`, SIL OFL) rather than fetched from
+  Google Fonts at build time, since a failed download there failed a Vercel build.
 - Radius 0.5rem. Shadows are faint and neutral (`--shadow-soft` is a 1px line).
 - Figures sit in a `MetricStrip`: one ruled frame with hairlines between cells, no icon tiles.
 - Status is a colored dot plus the word in ink (`StatusBadge`, `PayrollStatusBadge`); only negative

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
-import { IBM_Plex_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/shared/providers";
 import { Toaster } from "@/components/ui/sonner";
@@ -11,8 +11,19 @@ import { SITE_KEYWORDS, SITE_SHARE_IMAGE, baseOpenGraph, siteDescription, siteUr
 
 // One family for the whole product (ADR-048): IBM Plex Sans reads like a
 // well-set form, has true tabular figures for pay and hours, and isn't the
-// default every template ships with.
-const plexSans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-sans" });
+// default every template ships with. Self-hosted from ./fonts (Latin subset,
+// SIL OFL) so a build never downloads from Google Fonts: a failed download
+// there breaks the whole Vercel build.
+const plexSans = localFont({
+  src: [
+    { path: "./fonts/ibm-plex-sans-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/ibm-plex-sans-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/ibm-plex-sans-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/ibm-plex-sans-latin-700-normal.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export function generateMetadata(): Metadata {
   const description = siteDescription();
