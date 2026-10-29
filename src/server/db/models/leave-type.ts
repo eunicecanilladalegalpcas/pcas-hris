@@ -1,0 +1,27 @@
+import { Schema, model, models, type InferSchemaType } from "mongoose";
+import { hiddenPlugin } from "../hidden-plugin";
+
+// Configurable catalog data (ENGINEERING.md §54) — leave type names/codes are
+// never hardcoded; an organization defines its own (Vacation, Sick, ...).
+const leaveTypeSchema = new Schema(
+  {
+    organizationId: { type: Schema.Types.ObjectId, required: true, ref: "Organization" },
+    name: { type: String, required: true, trim: true },
+    code: { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    requiresApproval: { type: Boolean, required: true, default: true },
+    // HR's switch: unused days of this type are paid out at separation (ADR-032).
+    convertibleAtSeparation: { type: Boolean, required: true, default: false },
+    status: { type: String, enum: ["active", "inactive"], default: "active", required: true },
+  },
+  { timestamps: true },
+);
+
+leaveTypeSchema.index({ organizationId: 1, code: 1 }, { unique: true });
+
+// Test data the Super Administrator hid is left out of reads for everyone else (ADR-034).
+leaveTypeSchema.plugin(hiddenPlugin);
+
+export type LeaveType = InferSchemaType<typeof leaveTypeSchema>;
+
+export const LeaveTypeModel = models.LeaveType ?? model("LeaveType", leaveTypeSchema);

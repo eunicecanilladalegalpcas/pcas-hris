@@ -1,0 +1,147 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { Check, X, Ban } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { FormField, FormError } from "@/components/shared/form-field";
+import { cn } from "@/lib/utils";
+
+async function patchRequest(id: string, organizationId: string, body: Record<string, unknown>) {
+  return fetch(`/api/leave-requests/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ organizationId, ...body }),
+  });
+}
+
+export function DecideActions({
+  requestId,
+  organizationId,
+  status,
+  canApprove,
+  canCancel,
+}: {
+  requestId: string;
+  organizationId: string;
+  status: string;
+  canApprove: boolean;
+  canCancel: boolean;
+}) {
+  const router = useRouter();
+  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | "cancel" | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  if (status !== "pending") return null;
+
+  async function handleApprove() {
+    setPendingAction("approve");
+    const response = await patchRequest(requestId, organizationId, { action: "approve" });
+    setPendingAction(null);
+    if (response.ok) {
+      toast.success("Leave request updated");
+      router.refresh();
+    }
+  }
+
+  async function handleReject() {
+    setError(null);
+    setPendingAction("reject");
+    const response = await patchRequest(requestId, organizationId, { action: "reject", rejectionReason: rejectionReason || undefined });
+    setPendingAction(null);
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      setError(body.error ?? "Failed to reject request.");
+      return;
+    }
+    setRejectOpen(false);
+    setRejectionReason("");
+    toast.success("Leave request updated");
+    router.refresh();
+  }
+
+  async function handleCancel() {
+    setPendingAction("cancel");
+    const response = await patchRequest(requestId, organizationId, { action: "cancel" });
+    setPendingAction(null);
+    if (response.ok) {
+      toast.success("Leave request updated");
+      router.refresh();
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {canApprove && (
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleApprove}
+            disabled={pendingAction !== null}
+            data-testid="leave-approve-request-button"
+           icon={Check} pending={pendingAction === "approve"} pendingLabel="Approving…">
+            
+            Approve
+          </Button>
+          <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+            <DialogTrigger
+              className={cn(buttonVariants({ size: "sm", variant: "outline" }), pendingAction !== null && "pointer-events-none opacity-50")}
+              data-testid="leave-reject-request-button"
+            >
+              <X className="size-3.5" />
+              Reject
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reject leave request</DialogTitle>
+                <DialogDescription>Records why this request is being rejected — visible to the employee.</DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-4">
+                <FormField label="Reason" htmlFor="reject-reason">
+                  <Textarea id="reject-reason" placeholder="e.g. Insufficient balance for requested dates" value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} />
+                </FormField>
+                <FormError message={error} />
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="destructive"
+                  onClick={handleReject}
+                  disabled={pendingAction !== null}
+                  data-testid="leave-reject-request-submit-button"
+                 icon={X} pending={pendingAction === "reject"} pendingLabel="Rejecting…">
+            Reject
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
+      {canCancel && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleCancel}
+          disabled={pendingAction !== null}
+          data-testid="leave-cancel-request-button"
+         icon={Ban} pending={pendingAction === "cancel"} pendingLabel="Cancelling…">
+          
+            Cancel
+        </Button>
+      )}
+    </div>
+  );
+}

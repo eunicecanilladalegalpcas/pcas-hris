@@ -1,0 +1,93 @@
+import { z } from "zod";
+import { clearable, contactNumberSchema, sssNumberSchema, philHealthNumberSchema, pagIbigNumberSchema, tinNumberSchema } from "./shared";
+import { objectId } from "@/shared/validation/object-id";
+
+const assignmentFields = {
+  positionId: objectId().optional(),
+  organizationUnitId: objectId().optional(),
+  projectId: objectId().optional(),
+  locationId: objectId().optional(),
+  effectiveFrom: z.coerce.date().optional(),
+};
+
+export const hireEmployeeSchema = z.object({
+  organizationId: objectId(),
+  firstName: z.string().max(200).trim().min(1),
+  middleName: z.string().trim().max(100).optional(),
+  lastName: z.string().max(200).trim().min(1),
+  email: z.string().max(254).trim().toLowerCase().email().optional(),
+  employeeNumber: z.string().max(200).trim().min(1).optional(),
+  employmentType: z.string().max(200).trim().min(1),
+  gender: z.enum(["Male", "Female"]).optional(),
+  birthDate: z.coerce.date().optional(),
+  phone: contactNumberSchema.optional(),
+  address: z.string().trim().max(255).optional(),
+  sssNumber: sssNumberSchema.optional(),
+  philHealthNumber: philHealthNumberSchema.optional(),
+  pagIbigNumber: pagIbigNumberSchema.optional(),
+  tinNumber: tinNumberSchema.optional(),
+  endOfContract: z.coerce.date().optional(),
+  ...assignmentFields,
+});
+
+// Every field here is always submitted by the edit form (pre-filled with
+// the employee's current values), so an empty string is a meaningful
+// signal — "clear this field" — not just "not provided." `clearable(...)`
+// accepts it alongside the normal format, and the API route/service turn
+// it into an actual $unset rather than silently keeping the old value.
+export const updateEmployeeProfileSchema = z.object({
+  organizationId: objectId(),
+  firstName: z.string().max(200).trim().min(1),
+  middleName: z.string().trim().max(100).optional(),
+  lastName: z.string().max(200).trim().min(1),
+  email: clearable(z.string().max(254).trim().toLowerCase().email()).optional(),
+  employeeNumber: clearable(z.string().max(200).trim().min(1)).optional(),
+  gender: clearable(z.enum(["Male", "Female"])).optional(),
+  birthDate: clearable(z.coerce.date()).optional(),
+  phone: clearable(contactNumberSchema).optional(),
+  address: z.string().trim().max(255).optional(),
+  sssNumber: clearable(sssNumberSchema).optional(),
+  philHealthNumber: clearable(philHealthNumberSchema).optional(),
+  pagIbigNumber: clearable(pagIbigNumberSchema).optional(),
+  tinNumber: clearable(tinNumberSchema).optional(),
+});
+
+export const transferAssignmentSchema = z.object({
+  organizationId: objectId(),
+  ...assignmentFields,
+});
+
+export const createEmploymentSchema = z.object({
+  organizationId: objectId(),
+  employmentType: z.string().max(200).trim().min(1),
+  effectiveFrom: z.coerce.date().optional(),
+});
+
+export const terminateEmploymentSchema = z.object({
+  organizationId: objectId(),
+  effectiveTo: z.coerce.date().optional(),
+  terminationReason: z.string().max(2000).trim().optional(),
+  status: z.string().max(200).trim().optional(),
+});
+
+/** PATCH /api/employees/[id]/employment/terms: regularize, renew a contract, or change type (ADR-052). */
+export const changeEmploymentTermsSchema = z.object({
+  organizationId: objectId(),
+  employmentType: z.string().max(200).trim().min(1),
+  effectiveFrom: z.coerce.date(),
+  endOfContract: z.coerce.date().optional(),
+  note: z.string().max(500).trim().optional(),
+});
+
+export type HireEmployeeInput = z.infer<typeof hireEmployeeSchema>;
+export type UpdateEmployeeProfileInput = z.infer<typeof updateEmployeeProfileSchema>;
+export type TransferAssignmentInput = z.infer<typeof transferAssignmentSchema>;
+export type CreateEmploymentInput = z.infer<typeof createEmploymentSchema>;
+export type TerminateEmploymentInput = z.infer<typeof terminateEmploymentSchema>;
+export type ChangeEmploymentTermsSchemaInput = z.infer<typeof changeEmploymentTermsSchema>;
+
+/** GET /api/employees/export: the roster export and print, optionally one employment type. */
+export const employeeExportQuerySchema = z.object({
+  organizationId: objectId(),
+  employmentType: z.string().trim().max(100).optional(),
+});
