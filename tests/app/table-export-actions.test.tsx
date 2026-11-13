@@ -44,7 +44,10 @@ describe("module export (Excel or CSV)", () => {
     await user.click(screen.getByTestId("cases-export-button"));
     await user.click(screen.getByTestId("cases-export-xlsx"));
 
-    await waitFor(() => expect(downloadBlob).toHaveBeenCalled());
+    // The Excel file is built after exceljs loads on demand (buildTableWorkbook),
+    // which takes about a second here and longer on a busy machine, so wait
+    // past waitFor's 1 s default (still inside the 15 s testTimeout).
+    await waitFor(() => expect(downloadBlob).toHaveBeenCalled(), { timeout: 10_000 });
     const [blob, filename] = downloadBlob.mock.calls[0];
     expect(filename).toMatch(/^acme-inc-case-monitoring-\d{4}-\d{2}-\d{2}\.xlsx$/);
     expect(blob.type).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
