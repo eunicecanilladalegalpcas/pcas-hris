@@ -45,3 +45,13 @@ export const tinNumberSchema = z
   .string()
   .trim()
   .regex(/^\d{3}-\d{3}-\d{3}(-\d{3})?$/, "Use format XXX-XXX-XXX or XXX-XXX-XXX-XXX");
+
+/**
+ * Free-text remarks on an employee (e.g. "Senior, PWD"). One rule for the
+ * forms, the API request schemas and the Person model's maxlength.
+ */
+export const REMARKS_MAX_LENGTH = 200;
+export const remarksSchema = z
+  .string()
+  .trim()
+  .max(REMARKS_MAX_LENGTH, `Remarks can be at most ${REMARKS_MAX_LENGTH} characters`);

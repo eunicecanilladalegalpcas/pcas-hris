@@ -8,12 +8,13 @@ const unique = () => `${Date.now()}-${Math.random()}`;
 
 async function seedEmployee(
   organizationId: Types.ObjectId,
-  input: { first: string; last: string; number: string; type?: string; status?: string; hired?: string; positionId?: Types.ObjectId; ids?: boolean; endOfContract?: string },
+  input: { first: string; last: string; number: string; type?: string; status?: string; hired?: string; positionId?: Types.ObjectId; ids?: boolean; endOfContract?: string; remarks?: string },
 ) {
   const person = await PersonModel.create({
     organizationId,
     firstName: input.first,
     lastName: input.last,
+    ...(input.remarks ? { remarks: input.remarks } : {}),
     ...(input.ids ? { sssNumber: "34-1234567-8", philHealthNumber: "12-345678901-2", pagIbigNumber: "1234-5678-9012", tinNumber: "123-456-789-000" } : {}),
   });
   const employee = await EmployeeModel.create({ organizationId, personId: person._id, employeeNumber: input.number });
@@ -39,7 +40,7 @@ describe("EmployeeRosterService", () => {
     await connectMongoDB();
     const organization = await OrganizationModel.create({ name: "Roster Co", slug: `roster-${unique()}` });
     organizationId = organization._id;
-    await seedEmployee(organizationId, { first: "Ana", last: "Cruz", number: "E-003", hired: "2023-05-01", ids: true });
+    await seedEmployee(organizationId, { first: "Ana", last: "Cruz", number: "E-003", hired: "2023-05-01", ids: true, remarks: "Senior, PWD" });
     await seedEmployee(organizationId, { first: "Ben", last: "Reyes", number: "E-001", type: "probationary", positionId: engineer });
     await seedEmployee(organizationId, { first: "Carla", last: "Santos", number: "E-002", status: "resigned" });
     // Another organization's employee never shows up.
@@ -101,6 +102,20 @@ describe("EmployeeRosterService", () => {
 
     const probationary = await EmployeeRosterService.exportRows(organizationId.toString(), lookups, "probationary");
     expect(probationary.map((row) => row.name)).toEqual(["Ben Reyes"]);
+  });
+
+  it("carries remarks on page rows and export rows, blank for a person without any", async () => {
+    const page = await EmployeeRosterService.page(organizationId.toString(), { ...base, sort: "name" });
+    expect(page.rows.map((row) => row.person?.remarks)).toEqual(["Senior, PWD", undefined, undefined]);
+
+    const lookups = { positionTitleById: new Map(), projectNameById: new Map(), statusNameByCode: new Map() };
+    const exported = await EmployeeRosterService.exportRows(organizationId.toString(), lookups);
+    expect(exported.map((row) => row.remarks)).toEqual(["Senior, PWD", "", ""]);
+  });
+
+  it("does not search remarks", async () => {
+    const byRemark = await EmployeeRosterService.page(organizationId.toString(), { ...base, q: "PWD" });
+    expect(byRemark.total).toBe(0);
   });
 
   it("counts and lists contracts ending soon only for types that end, never a Regular employee's leftover date", async () => {

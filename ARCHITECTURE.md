@@ -88,7 +88,8 @@ which is what makes historical reconstruction (`getAsOf(employeeId, date)`) poss
 separately audited writes for a new hire, not one Mongo transaction (see ADR-005's consequences).
 A transfer's close-old/open-new pair does run in one transaction (ADR-041).
 
-`Person` also carries `gender`/`birthDate`/`address`/`phone` and statutory ID numbers (SSS/
+`Person` also carries `gender`/`birthDate`/`address`/`phone`, an optional `remarks` note (at most
+200 characters, see the ADR-019 addendum) and statutory ID numbers (SSS/
 PhilHealth/Pag-IBIG/TIN, format-validated), and `Employment` carries an optional `endOfContract`
 (required only when the selected `EmploymentType`'s `metadata.requiresEndOfContract` is set) —
 added per ADR-019 to match the legacy v1 app's Employee Roster fields on top of this codebase's

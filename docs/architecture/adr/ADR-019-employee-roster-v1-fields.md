@@ -54,3 +54,25 @@ models already owns that kind of fact, not flattened back into one document.
   natural next addition if requested.
 - A person hired before this ADR simply has these fields `undefined` — Age/Length of Service
   render as "—" for them, not an error, since every new field is optional at the schema level.
+
+## Addendum (November 2026): optional employee remarks
+
+`Person` gains `remarks`, an optional free-text HR note of at most 200 characters (for example
+"Senior, PWD"). It sits next to `address` for the same reason the fields above do: it is a fact
+about the person, not about one employment or assignment. There is no new collection and no
+migration; people without a note simply have no `remarks` field.
+
+- **One rule, three layers.** `remarksSchema` and `REMARKS_MAX_LENGTH` in
+  `src/shared/validation/shared.ts` are used by the Hire form and the Edit employee dialog
+  (checked before submit, with a live `n/200` counter), by the request schemas in
+  `src/shared/validation/workforce.ts` (a longer note is a 400 on the `remarks` field), and by the
+  model's `maxlength`, which is the last line of defence if a write bypasses the route.
+- **Blank means different things on hire and edit.** On hire, a whitespace-only note is dropped,
+  so `""` is never stored. On edit, the form always sends every field, so `""` reaches
+  `PersonService.update` and becomes an `$unset`, like the other clearable fields.
+- **Where it shows.** A Remarks column on the roster (after Length of service), the CSV/Excel
+  export (after Address), the print report, and the profile header.
+- **Not searchable.** The roster search still covers name, employee number and position only.
+- **No new permission.** Remarks can hold sensitive facts and travel with the export, which stays
+  behind `employees.read`, rate limited and audited (`employees.exported`). The export note already
+  asks people to share the file only with those who need it.

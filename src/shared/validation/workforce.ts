@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { clearable, contactNumberSchema, sssNumberSchema, philHealthNumberSchema, pagIbigNumberSchema, tinNumberSchema } from "./shared";
+import { clearable, contactNumberSchema, sssNumberSchema, philHealthNumberSchema, pagIbigNumberSchema, tinNumberSchema, remarksSchema } from "./shared";
 import { objectId } from "@/shared/validation/object-id";
 
 const assignmentFields = {
@@ -22,6 +22,8 @@ export const hireEmployeeSchema = z.object({
   birthDate: z.coerce.date().optional(),
   phone: contactNumberSchema.optional(),
   address: z.string().trim().max(255).optional(),
+  // A whitespace-only note means "no note", never stored as "".
+  remarks: remarksSchema.transform((value) => value || undefined).optional(),
   sssNumber: sssNumberSchema.optional(),
   philHealthNumber: philHealthNumberSchema.optional(),
   pagIbigNumber: pagIbigNumberSchema.optional(),
@@ -46,6 +48,8 @@ export const updateEmployeeProfileSchema = z.object({
   birthDate: clearable(z.coerce.date()).optional(),
   phone: clearable(contactNumberSchema).optional(),
   address: z.string().trim().max(255).optional(),
+  // "" passes as-is: it is how the form says "clear the remarks".
+  remarks: remarksSchema.optional(),
   sssNumber: clearable(sssNumberSchema).optional(),
   philHealthNumber: clearable(philHealthNumberSchema).optional(),
   pagIbigNumber: clearable(pagIbigNumberSchema).optional(),
